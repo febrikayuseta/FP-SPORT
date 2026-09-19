@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/sport-categories?is_paginate=false&per_page=50\")",
+      "Bash(curl -sv \"https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/sport-categories?is_paginate=false&per_page=50\")",
+      "Bash(curl -sk \"https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/sport-categories?is_paginate=false&per_page=50\")",
+      "Bash(curl -sk \"https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/location/provinces?is_paginate=false&per_page=100\")",
+      "Bash(curl -sk \"https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/location/cities/11?is_paginate=false&per_page=5\")",
+      "Bash(curl -sk \"https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/upload-image\" -X POST -F \"file=@C:/Windows/System32/notepad.exe\")"
+    ]
+  }
+}
