@@ -5,8 +5,11 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import Loader from '../components/Loader'
 import EmptyState from '../components/EmptyState'
+import Pagination from '../components/Pagination'
 import { IconEdit, IconPlus, IconTrash } from '../components/Icons'
 import { formatDate, formatRupiah } from '../utils/format'
+
+const PER_PAGE = 10
 
 export default function MyActivities() {
   const { user } = useAuth()
@@ -14,17 +17,17 @@ export default function MyActivities() {
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState('')
+  const [page, setPage] = useState(1)
 
   function load() {
     setLoading(true)
     setErrorMsg('')
-    // Endpoint sport-activities belum ada filter "punya saya", jadi kita ambil
-    // semua terus disaring di client berdasarkan user_id yang bikin.
     getActivities({ is_paginate: false, per_page: 200 })
       .then((res) => {
         const d = res?.data
         const all = Array.isArray(d) ? d : d?.data || []
         setActivities(all.filter((a) => a.user_id === user?.id || a.user?.id === user?.id))
+        setPage(1)
       })
       .catch((err) => setErrorMsg(err.message))
       .finally(() => setLoading(false))
@@ -42,6 +45,12 @@ export default function MyActivities() {
       toast.error(err.message)
     }
   }
+
+  const totalPages = Math.ceil(activities.length / PER_PAGE)
+  const paginated = activities.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+  const fakeMeta = activities.length > PER_PAGE
+    ? { current_page: page, last_page: totalPages, total: activities.length }
+    : null
 
   return (
     <div className="container section">
@@ -70,43 +79,46 @@ export default function MyActivities() {
           }
         />
       ) : (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Judul</th>
-                <th>Tanggal</th>
-                <th>Slot</th>
-                <th>Harga</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {activities.map((a) => (
-                <tr key={a.id}>
-                  <td>
-                    <Link to={`/aktivitas/${a.id}`} style={{ fontWeight: 700 }}>
-                      {a.title}
-                    </Link>
-                  </td>
-                  <td>{formatDate(a.activity_date)}</td>
-                  <td>{a.slot}</td>
-                  <td>{formatRupiah(a.price)}</td>
-                  <td>
-                    <div className="table-actions">
-                      <Link to={`/aktivitas-saya/${a.id}/edit`} className="btn btn--sm btn--outline">
-                        <IconEdit width={14} height={14} />
-                      </Link>
-                      <button className="btn btn--sm btn--danger" onClick={() => handleDelete(a.id)}>
-                        <IconTrash width={14} height={14} />
-                      </button>
-                    </div>
-                  </td>
+        <>
+          <div className="data-table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Judul</th>
+                  <th>Tanggal</th>
+                  <th>Slot</th>
+                  <th>Harga</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {paginated.map((a) => (
+                  <tr key={a.id}>
+                    <td>
+                      <Link to={`/aktivitas/${a.id}`} style={{ fontWeight: 700 }}>
+                        {a.title}
+                      </Link>
+                    </td>
+                    <td>{formatDate(a.activity_date)}</td>
+                    <td>{a.slot}</td>
+                    <td>{formatRupiah(a.price)}</td>
+                    <td>
+                      <div className="table-actions">
+                        <Link to={`/aktivitas-saya/${a.id}/edit`} className="btn btn--sm btn--outline">
+                          <IconEdit width={14} height={14} />
+                        </Link>
+                        <button className="btn btn--sm btn--danger" onClick={() => handleDelete(a.id)}>
+                          <IconTrash width={14} height={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination meta={fakeMeta} onPageChange={setPage} />
+        </>
       )}
     </div>
   )

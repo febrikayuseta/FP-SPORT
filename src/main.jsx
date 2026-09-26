@@ -7,7 +7,6 @@ import { ToastProvider } from './context/ToastContext.jsx'
 import './styles/index.css'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
@@ -15,5 +14,4 @@ createRoot(document.getElementById('root')).render(
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
-  </StrictMode>
 )

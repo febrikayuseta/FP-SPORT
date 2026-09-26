@@ -5,6 +5,7 @@ import { getActivities } from '../api/activities'
 import ActivityCard from '../components/ActivityCard'
 import Loader from '../components/Loader'
 import EmptyState from '../components/EmptyState'
+import Pagination from '../components/Pagination'
 import { IconArrowRight, IconBall, IconCalendar, IconUsers, IconWallet } from '../components/Icons'
 
 const HOW_IT_WORKS = [
@@ -43,36 +44,63 @@ function sortActivities(list, sort) {
   return a.sort((x, y) => new Date(y.activity_date) - new Date(x.activity_date))
 }
 
+const PER_PAGE_OPTIONS = [5, 10, 20, 50]
+
 export default function Home() {
   const [categories, setCategories] = useState([])
-  const [activities, setActivities] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [catLoading, setCatLoading] = useState(true)
   const [err, setErr] = useState('')
+
+  const [activities, setActivities] = useState([])
+  const [actMeta, setActMeta] = useState(null)
+  const [actPage, setActPage] = useState(1)
+  const [actLoading, setActLoading] = useState(true)
+  const [perPage, setPerPage] = useState(10)
+
   const [sort, setSort] = useState('newest')
 
   useEffect(() => {
     let alive = true
-    Promise.allSettled([
-      getCategories({ is_paginate: false, per_page: 8 }),
-      getActivities({ is_paginate: false, per_page: 6 }),
-    ]).then(([catRes, actRes]) => {
-      if (!alive) return
-      if (catRes.status === 'fulfilled') {
-        const d = catRes.value?.data
+    getCategories({ is_paginate: false, per_page: 8 })
+      .then((res) => {
+        if (!alive) return
+        const d = res?.data
         setCategories(Array.isArray(d) ? d : d?.data || [])
-      } else {
-        setErr('Nggak bisa ambil data dari backend.')
-      }
-      if (actRes.status === 'fulfilled') {
-        const d = actRes.value?.data
-        setActivities(Array.isArray(d) ? d : d?.data || [])
-      }
-      setLoading(false)
-    })
-    return () => {
-      alive = false
-    }
+      })
+      .catch(() => alive && setErr('Nggak bisa ambil data dari backend.'))
+      .finally(() => alive && setCatLoading(false))
+    return () => { alive = false }
   }, [])
+
+  useEffect(() => {
+    let alive = true
+    setActLoading(true)
+    getActivities({ is_paginate: true, per_page: perPage, page: actPage })
+      .then((res) => {
+        if (!alive) return
+        const d = res?.data
+        if (Array.isArray(d)) {
+          setActivities(d)
+          setActMeta(null)
+        } else {
+          setActivities(d?.data || [])
+          setActMeta(d || null)
+        }
+      })
+      .catch(() => {})
+      .finally(() => alive && setActLoading(false))
+    return () => { alive = false }
+  }, [actPage, perPage])
+
+  function handleSort(key) {
+    setSort(key)
+    setActPage(1)
+  }
+
+  function handlePerPage(n) {
+    setPerPage(n)
+    setActPage(1)
+  }
 
   return (
     <>
@@ -105,7 +133,7 @@ export default function Home() {
                 <span>Cabang Olahraga</span>
               </div>
               <div className="hero__stat">
-                <b>{activities.length ? `${activities.length}+` : '—'}</b>
+                <b>{actMeta?.total ? `${actMeta.total}+` : '—'}</b>
                 <span>Aktivitas Aktif</span>
               </div>
               <div className="hero__stat">
@@ -147,7 +175,7 @@ export default function Home() {
           </Link>
         </div>
 
-        {loading ? (
+        {catLoading ? (
           <Loader />
         ) : categories.length === 0 ? (
           <EmptyState title="Kategori belum ke-load" hint={err || 'Coba cek koneksi ke backend-nya.'} />
@@ -206,14 +234,26 @@ export default function Home() {
             <button
               key={opt.key}
               className={`btn btn--sm${sort === opt.key ? ' btn--danger' : ' btn--outline'}`}
-              onClick={() => setSort(opt.key)}
+              onClick={() => handleSort(opt.key)}
             >
               {opt.label}
             </button>
           ))}
+          <div className="sort-bar__perpage">
+            <span>Tampil:</span>
+            {PER_PAGE_OPTIONS.map((n) => (
+              <button
+                key={n}
+                className={`btn btn--sm${perPage === n ? ' btn--lime' : ' btn--outline'}`}
+                onClick={() => handlePerPage(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {loading ? (
+        {actLoading ? (
           <Loader />
         ) : activities.length === 0 ? (
           <EmptyState
@@ -232,6 +272,8 @@ export default function Home() {
             ))}
           </div>
         )}
+
+        <Pagination meta={actMeta} onPageChange={(p) => setActPage(p)} />
       </section>
 
       <section className="section container">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getActivities } from '../api/activities'
 import { getCategories } from '../api/categories'
+import { normalizeList } from '../api/client'
 import ActivityCard from '../components/ActivityCard'
 import CityPicker from '../components/CityPicker'
 import Pagination from '../components/Pagination'
@@ -9,7 +10,7 @@ import Loader from '../components/Loader'
 import EmptyState from '../components/EmptyState'
 import { IconSearch } from '../components/Icons'
 
-const PER_PAGE = 9
+const PER_PAGE_OPTIONS = [9, 18, 27]
 
 export default function Browse() {
   const [params, setParams] = useSearchParams()
@@ -23,6 +24,7 @@ export default function Browse() {
   const categoryId = params.get('kategori') || ''
   const cityId = params.get('kota') || ''
   const page = Number(params.get('page') || 1)
+  const perPage = Number(params.get('per_page') || 9)
 
   const [searchInput, setSearchInput] = useState(search)
 
@@ -41,7 +43,7 @@ export default function Browse() {
     setErrorMsg('')
     getActivities({
       is_paginate: true,
-      per_page: PER_PAGE,
+      per_page: perPage,
       page,
       search,
       sport_category_id: categoryId,
@@ -49,21 +51,16 @@ export default function Browse() {
     })
       .then((res) => {
         if (!alive) return
-        const d = res?.data
-        if (Array.isArray(d)) {
-          setActivities(d)
-          setMeta(null)
-        } else {
-          setActivities(d?.data || [])
-          setMeta(d || null)
-        }
+        const { items, meta } = normalizeList(res)
+        setActivities(items)
+        setMeta(meta)
       })
       .catch((err) => alive && setErrorMsg(err.message))
       .finally(() => alive && setLoading(false))
     return () => {
       alive = false
     }
-  }, [search, categoryId, cityId, page])
+  }, [search, categoryId, cityId, page, perPage])
 
   function updateParam(key, value) {
     const next = new URLSearchParams(params)
@@ -122,11 +119,23 @@ export default function Browse() {
           <span>
             Nemu <strong>{meta?.total ?? activities.length}</strong> aktivitas
           </span>
-          {(categoryId || cityId || search) && (
-            <button className="btn btn--ghost" onClick={() => setParams({})}>
-              Reset filter
-            </button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {(categoryId || cityId || search) && (
+              <button className="btn btn--ghost" onClick={() => setParams({})}>
+                Reset filter
+              </button>
+            )}
+            <span style={{ opacity: 0.5, fontSize: '0.82rem' }}>Tampil:</span>
+            {PER_PAGE_OPTIONS.map((n) => (
+              <button
+                key={n}
+                className={`btn btn--sm${perPage === n ? ' btn--danger' : ' btn--outline'}`}
+                onClick={() => updateParam('per_page', n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
@@ -149,7 +158,6 @@ export default function Browse() {
   )
 }
 
-// Filter kota simpel: provinsi -> kota, taruh terpisah biar Browse nggak makin gemuk.
 function CityFilter({ cityId, onChange }) {
   return (
     <div style={{ maxWidth: 480 }}>
