@@ -28,11 +28,27 @@ const HOW_IT_WORKS = [
   },
 ]
 
+const SORT_OPTIONS = [
+  { key: 'newest', label: 'Terbaru' },
+  { key: 'soonest', label: 'Terdekat' },
+  { key: 'cheapest', label: 'Termurah' },
+  { key: 'slots', label: 'Slot Terbanyak' },
+]
+
+function sortActivities(list, sort) {
+  const a = [...list]
+  if (sort === 'soonest') return a.sort((x, y) => new Date(x.activity_date) - new Date(y.activity_date))
+  if (sort === 'cheapest') return a.sort((x, y) => x.price - y.price)
+  if (sort === 'slots') return a.sort((x, y) => y.slot - x.slot)
+  return a.sort((x, y) => new Date(y.activity_date) - new Date(x.activity_date))
+}
+
 export default function Home() {
   const [categories, setCategories] = useState([])
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [sort, setSort] = useState('newest')
 
   useEffect(() => {
     let alive = true
@@ -185,6 +201,18 @@ export default function Home() {
           </Link>
         </div>
 
+        <div className="sort-bar">
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              className={`btn btn--sm${sort === opt.key ? ' btn--danger' : ' btn--outline'}`}
+              onClick={() => setSort(opt.key)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <Loader />
         ) : activities.length === 0 ? (
@@ -199,7 +227,7 @@ export default function Home() {
           />
         ) : (
           <div className="activity-grid">
-            {activities.map((a, i) => (
+            {sortActivities(activities, sort).map((a, i) => (
               <ActivityCard key={a.id} activity={a} index={i} />
             ))}
           </div>
